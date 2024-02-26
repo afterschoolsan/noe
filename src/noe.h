@@ -19,21 +19,98 @@
     #error "Unsupported platform"
 #endif
 
-#ifndef NOE_WITHOUT_NATIVE_FUNCTIONS
+#ifdef NOE_PLATFORM_LINUX
+    #if !defined(NOE_LINUX_DISPLAY_X11) && !defined(NOE_LINUX_DISPLAY_WAYLAND)
+        #define NOE_LINUX_DISPLAY_X11
+    #endif
+#endif // NOE_PLATFORM_LINUX
 
-#endif // NOE_WITHOUT_NATIVE_FUNCTIONS
+#ifndef MAXIMUM_KEYBOARD_KEYS
+    #define MAXIMUM_KEYBOARD_KEYS 512
+#endif
+#ifndef MAXIMUM_MOUSE_BUTTONS
+    #define MAXIMUM_MOUSE_BUTTONS 8
+#endif
+#ifndef MAXIMUM_KEYPRESSED_QUEUE
+    #define MAXIMUM_KEYPRESSED_QUEUE 16
+#endif
 
-#define TRACELOG(logLevel, ...) TraceLog(logLevel, __VA_ARGS__)
+#ifndef CAST
+    #define CAST(T, v) ((T)(v))
+#endif
+#ifndef TRACELOG
+    #define TRACELOG(logLevel, ...) TraceLog(logLevel, __VA_ARGS__)
+#endif
 
+#define FLAG_SET(n, f) ((n) |= (f))
+#define FLAG_CLEAR(n, f) ((n) &= ~(f))
+#define FLAG_TOGGLE(n, f) ((n) ^= (f))
+#define FLAG_CHECK(n, f) ((n) & (f))
+
+/*******************************
+ * Functions
+ *******************************/
+
+///
+/// Non application dependent functions
+///
+
+//
+const char *StringFind(const char *haystack, const char *needle);
 char *StringCopy(char *dst, const char *src, size_t length);
 size_t StringLength(const char *str);
-void TraceLog(int logLevel, const char *fmt, ...);
+void *MemorySet(void *dst, int value, size_t length);
+void *MemoryCopy(void *dst, const void *src, size_t length);
+
+/**
+ * Allocate memory (implemented in noeplatform_xxx.c)
+ */
 void *MemoryAlloc(size_t nBytes);
+
+/**
+ * Deallocate memory (implemented in noeplatform_xxx.c)
+ */
 void MemoryFree(void *ptr);
 
-void SetWindowConfig(uint32_t width, uint32_t height, const char *title);
+/**
+ * Logging function (implemented in noeplatform_xxx.c)
+ */
+void TraceLog(int logLevel, const char *fmt, ...);
+
+
+///
+/// Application configuration functions 
+///
+
+/**
+ * Set window configurations (desktop only)
+ */
+void SetWindowConfig(uint32_t width, uint32_t height, const char *title, uint32_t flags);
+
+/**
+ * Initialize your application
+ */
 bool InitApplication(void);
+
+/**
+ * Deinitialize your application
+ */
 void DeinitApplication(void);
+
+void SetWindowTitle(const char *title);
+void SetWindowSize(uint32_t width, uint32_t height);
+void SetWindowVisible(bool isVisible);
+void SetWindowResizable(bool isResizable);
+void SetWindowFullscreen(bool isFullscreen);
+bool IsWindowVisible(void);
+bool IsWindowResizable(void);
+bool IsWindowFullscreen(void);
+
+void SwapGLBuffer(void);
+
+///
+/// Event handling
+///
 
 void PollInputEvents(void);
 bool IsKeyPressed(int key);
@@ -44,8 +121,22 @@ bool IsMouseButtonPressed(int button);
 bool IsMouseButtonReleased(int button);
 bool IsMouseButtonDown(int button);
 bool IsMouseButtonUp(int button);
+bool IsFrameResized(void);
+
+/**
+ * Desktop only
+ */
+void SetWindowShouldClose(bool shouldClose);
+
+/**
+ * Desktop only
+ */
 bool WindowShouldClose(void);
 
+
+/*******************************
+ * Enumerations
+ *******************************/
 typedef enum NoeLogLevel {
     LOG_INFO = 0,
     LOG_WARNING,
@@ -53,8 +144,15 @@ typedef enum NoeLogLevel {
     LOG_FATAL,
 } NoeLogLevel;
 
+typedef enum NoeWindowFlags {
+    WINDOW_FLAG_INVALID = 0,
+    WINDOW_FLAG_VISIBLE = 1,
+    WINDOW_FLAG_RESIZABLE = 2,
+    WINDOW_FLAG_FULLSCREEN = 3,
+} NoeWindowFlags;
+
 typedef enum NoeKeyCode {
-    INVALID_KEY            = 0,
+    KEY_INVALID            = 0,
 
     /* Printable keys */
     KEY_SPACE              = 32,
@@ -179,6 +277,63 @@ typedef enum NoeKeyCode {
     KEY_RIGHT_ALT          = 346,
     KEY_RIGHT_SUPER        = 347,
     KEY_MENU               = 348,
+    KEY_LAST = KEY_MENU,
 } NoeKeyCode;
+
+typedef enum NoeKeyMods {
+    KEY_MOD_SHIFT      = 0x0001,
+    KEY_MOD_CONTROL    = 0x0002,
+    KEY_MOD_ALT        = 0x0004,
+    KEY_MOD_SUPER      = 0x0008,
+    KEY_MOD_CAPSLOCK   = 0x0010,
+    KEY_MOD_NUMLOCK    = 0x0020,
+} NoeKeyMods;
+
+/*******************************
+ * Internal Types
+ *******************************/
+
+/**
+ * Internal Application Configuration 
+ */
+typedef struct _ApplicationConfig {
+    struct {
+        const char *title;
+        uint32_t width, height;
+        bool visible;
+        bool resizable;
+        bool fullScreen;
+    } window;
+    struct {
+        // The context creation will use GLX on Linux X11 Display System or WGL on Windows 
+        // otherwise It will use EGL
+        bool use_native;
+        bool use_core_profile;
+        bool use_opengles;
+        bool use_debug_context;
+        bool forward;
+        struct {
+            int major;
+            int minor;
+        } version;
+    } opengl;
+} _ApplicationConfig;
+
+/**
+ * Internal Input Manager
+ */
+typedef struct _InputManager {
+    struct {
+        char currentKeyState[MAXIMUM_KEYBOARD_KEYS];
+        char previousKeyState[MAXIMUM_KEYBOARD_KEYS];
+
+        int keyPressedQueue[MAXIMUM_KEYPRESSED_QUEUE];
+        int keyPressedQueueCount;
+    } keyboard;
+    struct {
+        char currentButtonState[MAXIMUM_MOUSE_BUTTONS];
+        char previousButtonState[MAXIMUM_MOUSE_BUTTONS];
+    } mouse;
+} _InputManager;
 
 #endif // NOE_H_

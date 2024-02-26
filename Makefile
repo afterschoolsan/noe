@@ -1,9 +1,12 @@
 CC := clang
-COMMON_CFLAGS := -Wall -Wextra -ggdb
+COMMON_CFLAGS := -Wall -Wextra -I./src/vendors/glad/include/
 
-TEST_CFLAGS := $(COMMON_CFLAGS)
-TEST_LFLAGS := -lX11
-TEST_DEPENDENCIES := ./src/noeplatform_linux.c ./src/ncore.c
+VENDOR_DIR := 
+VENDOR_SOURCES := ./src/vendors/glad/src/glad.c
 
-test.exe: ./test.c $(TEST_DEPENDENCIES)
+TEST_CFLAGS := $(COMMON_CFLAGS) -ggdb
+TEST_LFLAGS := -lX11 -lGL
+TEST_SOURCES := ./src/noe_platform_linux.c ./src/noe_core.c  $(VENDOR_SOURCES)
+
+test.exe: ./test.c $(TEST_SOURCES)
 	$(CC) $(TEST_CFLAGS) -o $@ $^ $(TEST_LFLAGS)
