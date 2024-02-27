@@ -115,6 +115,54 @@ static _ApplicationState APP = {0};
         }                                       \
     } while(0)
 
+void *MemorySet(void *dst, int value, size_t length)
+{
+    for(size_t i = 0; i < (length); ++i) 
+        CAST(int8_t *, dst)[i] = CAST(int8_t, value);
+    return dst;
+}
+
+void *MemoryCopy(void *dst, const void *src, size_t length)
+{
+    for(size_t i = 0; i < (length); ++i) 
+        CAST(uint8_t *, dst)[i] = CAST(const uint8_t *, src)[i];
+    return dst;
+}
+
+char *StringCopy(char *dst, const char *src, size_t length)
+{
+    for(size_t i = 0; i < length; ++i)
+        dst[i] = src[i];
+    return dst;
+}
+
+size_t StringLength(const char *str)
+{
+    size_t i = 0;
+    while(str[i++] != '\0');
+    return i;
+}
+
+const char *StringFind(const char *haystack, const char *needle)
+{
+    if (!*needle) return (char *)haystack;
+
+    while (*haystack) {
+        const char *p1 = haystack;
+        const char *p2 = needle;
+        while (*p1 && *p2 && *p1 == *p2) {
+            p1++;
+            p2++;
+        }
+        if (!*p2) {
+            return haystack;
+        }
+        haystack++;
+    }
+
+    return NULL; 
+}
+
 // Defined in noe_platform_xxx.c
 bool platformInit(const _ApplicationConfig *config);
 void platformDeinit(void);
@@ -336,9 +384,13 @@ void SetWindowConfig(uint32_t width, uint32_t height, const char *title, uint32_
     appConfig.window.title = title;
     appConfig.window.width = width;
     appConfig.window.height = height;
+    if(flags == 0) {
+        flags = WINDOW_FLAG_VISIBLE | WINDOW_FLAG_DECORATED;
+    }
     appConfig.window.resizable = FLAG_CHECK(WINDOW_FLAG_RESIZABLE, flags) ? 1 : 0;
     appConfig.window.fullScreen = FLAG_CHECK(WINDOW_FLAG_FULLSCREEN, flags) ? 1 : 0;
     appConfig.window.visible = FLAG_CHECK(WINDOW_FLAG_VISIBLE, flags) ? 1 : 0;
+    appConfig.window.decorated = FLAG_CHECK(WINDOW_FLAG_DECORATED, flags) ? 1 : 0;
 }
 
 void RenderClear(float r, float g, float b, float a)
@@ -471,6 +523,7 @@ bool LoadTexture(Texture *texture, const uint8_t *data, uint32_t width, uint32_t
     texture->height = height;
     texture->width = width;
     texture->compAmount = compAmount;
+    TRACELOG(LOG_INFO, "Loaded texture with id %u", texture->ID);
     glBindTexture(GL_TEXTURE_2D, 0);
     return true;
 }
@@ -665,17 +718,17 @@ void SetShaderUniform(Shader shader, int location, int uniformType, const void *
 
 void DrawTriangle(Color color, int x1, int y1, int x2, int y2, int x3, int y3)
 {
-    RenderPutElement(RenderPutVertex(x1, y1, 0.0f, COLOR_UNPACK(color), 0.0f, 0.0f, -1.0f));
-    RenderPutElement(RenderPutVertex(x2, y2, 0.0f, COLOR_UNPACK(color), 0.0f, 0.0f, -1.0f));
-    RenderPutElement(RenderPutVertex(x3, y3, 0.0f, COLOR_UNPACK(color), 0.0f, 0.0f, -1.0f));
+    RenderPutElement(RenderPutVertex((float)x1, (float)y1, 0.0f, COLOR_UNPACK(color), 0.0f, 0.0f, -1.0f));
+    RenderPutElement(RenderPutVertex((float)x2, (float)y2, 0.0f, COLOR_UNPACK(color), 0.0f, 0.0f, -1.0f));
+    RenderPutElement(RenderPutVertex((float)x3, (float)y3, 0.0f, COLOR_UNPACK(color), 0.0f, 0.0f, -1.0f));
 }
 
 void DrawRectangle(Color color, int x, int y, uint32_t w, uint32_t h)
 {
-    int v0 = RenderPutVertex(x, y, 0.0f, COLOR_UNPACK(color), 0.0f, 0.0f, -1.0f);
-    int v1 = RenderPutVertex(x + w, y, 0.0f, COLOR_UNPACK(color), 0.0f, 0.0f, -1.0f);
-    int v2 = RenderPutVertex(x + w, y + h, 0.0f, COLOR_UNPACK(color), 0.0f, 0.0f, -1.0f);
-    int v3 = RenderPutVertex(x, y + h, 0.0f, COLOR_UNPACK(color), 0.0f, 0.0f, -1.0f);
+    int v0 = RenderPutVertex((float)x,  (float)y, 0.0f, COLOR_UNPACK(color), 0.0f, 0.0f, -1.0f);
+    int v1 = RenderPutVertex((float)x + (float)w,  (float)y, 0.0f, COLOR_UNPACK(color), 0.0f, 0.0f, -1.0f);
+    int v2 = RenderPutVertex((float)x + (float)w,  (float)y + (float)h, 0.0f, COLOR_UNPACK(color), 0.0f, 0.0f, -1.0f);
+    int v3 = RenderPutVertex((float)x,  (float)y + (float)h, 0.0f, COLOR_UNPACK(color), 0.0f, 0.0f, -1.0f);
     RenderPutElement(v0);
     RenderPutElement(v1);
     RenderPutElement(v2);
@@ -687,16 +740,16 @@ void DrawRectangle(Color color, int x, int y, uint32_t w, uint32_t h)
 void DrawTexture(Texture texture, int x, int y, uint32_t w, uint32_t h)
 {
     int textureIndex = RenderEnableTexture(texture);
-    int tl = RenderPutVertex(x, y, 0.0f,  
+    int tl = RenderPutVertex((float)x, (float)y, 0.0f,  
             0.0f, 0.0f, 0.0f, 0.0f, 
             0.0f, 0.0f, textureIndex);
-    int tr = RenderPutVertex(x + w, y, 0.0f,  
+    int tr = RenderPutVertex((float)x + (float)w, (float)y, 0.0f,  
             0.0f, 0.0f, 0.0f, 0.0f,
             1.0f, 0.0f, textureIndex);
-    int br = RenderPutVertex(x + w, y + h,  
+    int br = RenderPutVertex((float)x + (float)w, (float)y + (float)h,  
             0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
             1.0f, 1.0f, textureIndex);
-    int bl = RenderPutVertex(x, y + h, 0.0f,
+    int bl = RenderPutVertex((float)x, (float)y + (float)h, 0.0f,
             0.0f, 0.0f, 0.0f, 0.0f,
             0.0f, 1.0f, textureIndex);
     RenderPutElement(tl);

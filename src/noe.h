@@ -180,10 +180,11 @@ typedef enum NoeLogLevel {
 } NoeLogLevel;
 
 typedef enum NoeWindowFlags {
-    WINDOW_FLAG_INVALID = 0,
+    WINDOW_FLAG_DEFAULT = 0,
     WINDOW_FLAG_VISIBLE = 1,
     WINDOW_FLAG_RESIZABLE = 2,
     WINDOW_FLAG_FULLSCREEN = 3,
+    WINDOW_FLAG_DECORATED = 4,
 } NoeWindowFlags;
 
 typedef enum NoeShaderUniformType {

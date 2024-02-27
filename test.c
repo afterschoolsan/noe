@@ -23,18 +23,28 @@ int main(void)
         return -1;
     }
 
+    Texture texture;
+    if(!LoadTextureFromFile(&texture, "./res/ikan.jpg", false)) {
+        TRACELOG(LOG_FATAL, "Failed to load texture");
+        return -1;
+    }
+
     Matrix projection = MatrixOrthographic(0.0f, WIDTH, HEIGHT, 0.0f, -1.0f, 1.0f);
     SetProjectionMatrixUniform(shader, projection.elements);
 
+    int x = 10;
+    int y = 10;
+    int world_speed = 5;
+
     while(!WindowShouldClose()) {
         PollInputEvents();
-        if(IsKeyDown(KEY_W)) TRACELOG(LOG_INFO, "KEY_W is pressed");
-        if(IsKeyDown(KEY_A)) TRACELOG(LOG_INFO, "KEY_A is pressed");
-        if(IsKeyDown(KEY_S)) TRACELOG(LOG_INFO, "KEY_S is pressed");
-        if(IsKeyDown(KEY_D)) TRACELOG(LOG_INFO, "KEY_D is pressed");
+        if(IsKeyDown(KEY_W)) y -= world_speed;
+        if(IsKeyDown(KEY_A)) x -= world_speed;
+        if(IsKeyDown(KEY_S)) y += world_speed;
+        if(IsKeyDown(KEY_D)) x += world_speed;
 
         RenderClear(0.0f, 0.0f, 0.0f, 1.0f);
-        DrawRectangle(CLITERAL(Color){255, 255, 0, 255}, 0, 0, 100, 100);
+        DrawTexture(texture, x, y, 200, 200);
         RenderFlush(shader);
         SwapBufferGL();
     }
