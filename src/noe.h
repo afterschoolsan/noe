@@ -41,11 +41,37 @@
 #ifndef TRACELOG
     #define TRACELOG(logLevel, ...) TraceLog(logLevel, __VA_ARGS__)
 #endif
+#ifndef CLITERAL
+    #ifdef __cplusplus
+        #define CLITERAL(T) T
+    #else
+        #define CLITERAL(T) (T)
+    #endif
+#endif
 
 #define FLAG_SET(n, f) ((n) |= (f))
 #define FLAG_CLEAR(n, f) ((n) &= ~(f))
 #define FLAG_TOGGLE(n, f) ((n) ^= (f))
 #define FLAG_CHECK(n, f) ((n) & (f))
+
+/*******************************
+ * Structs & Types
+ *******************************/
+
+typedef struct Shader {
+    uint32_t ID;
+    int *locs;
+} Shader;
+
+typedef struct Texture {
+    uint32_t ID;
+    uint32_t width, height;
+    uint32_t compAmount; // RGBA = 4, RGB = 3
+} Texture;
+
+typedef struct Color {
+    uint8_t r, g, b, a;
+} Color;
 
 /*******************************
  * Functions
@@ -61,20 +87,8 @@ char *StringCopy(char *dst, const char *src, size_t length);
 size_t StringLength(const char *str);
 void *MemorySet(void *dst, int value, size_t length);
 void *MemoryCopy(void *dst, const void *src, size_t length);
-
-/**
- * Allocate memory (implemented in noeplatform_xxx.c)
- */
 void *MemoryAlloc(size_t nBytes);
-
-/**
- * Deallocate memory (implemented in noeplatform_xxx.c)
- */
 void MemoryFree(void *ptr);
-
-/**
- * Logging function (implemented in noeplatform_xxx.c)
- */
 void TraceLog(int logLevel, const char *fmt, ...);
 
 
@@ -82,21 +96,10 @@ void TraceLog(int logLevel, const char *fmt, ...);
 /// Application configuration functions 
 ///
 
-/**
- * Set window configurations (desktop only)
- */
+//
 void SetWindowConfig(uint32_t width, uint32_t height, const char *title, uint32_t flags);
-
-/**
- * Initialize your application
- */
 bool InitApplication(void);
-
-/**
- * Deinitialize your application
- */
 void DeinitApplication(void);
-
 void SetWindowTitle(const char *title);
 void SetWindowSize(uint32_t width, uint32_t height);
 void SetWindowVisible(bool isVisible);
@@ -106,12 +109,11 @@ bool IsWindowVisible(void);
 bool IsWindowResizable(void);
 bool IsWindowFullscreen(void);
 
-void SwapGLBuffer(void);
-
 ///
 /// Event handling
 ///
 
+//
 void PollInputEvents(void);
 bool IsKeyPressed(int key);
 bool IsKeyReleased(int key);
@@ -122,17 +124,50 @@ bool IsMouseButtonReleased(int button);
 bool IsMouseButtonDown(int button);
 bool IsMouseButtonUp(int button);
 bool IsFrameResized(void);
-
-/**
- * Desktop only
- */
 void SetWindowShouldClose(bool shouldClose);
-
-/**
- * Desktop only
- */
 bool WindowShouldClose(void);
 
+///
+/// OpenGL
+///
+
+//
+void SwapBufferGL(void);
+void *GetProcGL(const char *procName);
+
+///
+/// Textures
+///
+
+bool LoadTexture(Texture *result, const uint8_t *data, uint32_t width, uint32_t height, uint32_t compAmount);
+bool LoadTextureFromFile(Texture *texture, const char *filePath, bool flipVerticallyOnLoad);
+void UnloadTexture(Texture texture);
+
+///
+/// Shaders
+///
+
+bool LoadShader(Shader *result, const char *vertSource, const char *fragSource);
+bool LoadShaderFromFile(Shader *result, const char *vertSourceFilePath, const char *fragSourceFilePath);
+void UnloadShader(Shader shader);
+void SetProjectionMatrixUniform(Shader shader, float *matrixData);
+void SetViewMatrixUniform(Shader shader, float *matrixData);
+void SetModelMatrixUniform(Shader shader, float *matrixData);
+void SetShaderUniform(Shader shader, int location, int uniformType, const void *data, int count, bool transposeIfMatrix);
+int GetShaderUniformLocation(Shader shader, const char *uniformName);
+int GetShaderAttributeLocation(Shader shader, const char *attributeName);
+
+///
+/// OpenGL Batch Renderer
+///
+
+void RenderClear(float r, float g, float b, float a);
+void RenderFlush(Shader shader);
+int RenderPutVertex(float x, float y, float z, float r, float g, float b, float a, float u, float v, int textureIndex);
+void RenderPutElement(int vertexIndex);
+void DrawTriangle(Color color, int x1, int y1, int x2, int y2, int x3, int y3);
+void DrawRectangle(Color color, int x, int y, uint32_t w, uint32_t h);
+void DrawTexture(Texture texture, int x, int y, uint32_t w, uint32_t h);
 
 /*******************************
  * Enumerations
@@ -150,6 +185,14 @@ typedef enum NoeWindowFlags {
     WINDOW_FLAG_RESIZABLE = 2,
     WINDOW_FLAG_FULLSCREEN = 3,
 } NoeWindowFlags;
+
+typedef enum NoeShaderUniformType {
+    INVALID_SHADER_UNIFORM = 0,
+    SHADER_UNIFORM_FLOAT, SHADER_UNIFORM_VEC2, SHADER_UNIFORM_VEC3, SHADER_UNIFORM_VEC4,
+    SHADER_UNIFORM_UINT, SHADER_UNIFORM_UVEC2, SHADER_UNIFORM_UVEC3, SHADER_UNIFORM_UVEC4,
+    SHADER_UNIFORM_INT, SHADER_UNIFORM_IVEC2, SHADER_UNIFORM_IVEC3, SHADER_UNIFORM_IVEC4,
+    SHADER_UNIFORM_MAT3, SHADER_UNIFORM_MAT4, SHADER_UNIFORM_SAMPLER,
+} NoeShaderUniformType;
 
 typedef enum NoeKeyCode {
     KEY_INVALID            = 0,
@@ -300,9 +343,11 @@ typedef struct _ApplicationConfig {
     struct {
         const char *title;
         uint32_t width, height;
+
         bool visible;
         bool resizable;
         bool fullScreen;
+        bool decorated;
     } window;
     struct {
         // The context creation will use GLX on Linux X11 Display System or WGL on Windows 
@@ -326,10 +371,10 @@ typedef struct _InputManager {
     struct {
         char currentKeyState[MAXIMUM_KEYBOARD_KEYS];
         char previousKeyState[MAXIMUM_KEYBOARD_KEYS];
-
         int keyPressedQueue[MAXIMUM_KEYPRESSED_QUEUE];
         int keyPressedQueueCount;
     } keyboard;
+
     struct {
         char currentButtonState[MAXIMUM_MOUSE_BUTTONS];
         char previousButtonState[MAXIMUM_MOUSE_BUTTONS];

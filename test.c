@@ -1,13 +1,30 @@
 #include "./src/noe.h"
-#include "./src/vendors/glad/include/glad/glad.h"
+#include "./src/nomath.h"
+#include <stdio.h>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+char *LoadFileText(const char *filePath);
+bool LoadTextureFromFile(Texture *texture, const char *filePath, bool flipVerticallyOnLoad);
+bool LoadShaderFromFile(Shader *shader, const char *vertSourceFilePath, const char *fragSourceFilePath);
+
+#define WIDTH 800
+#define HEIGHT 600
 
 int main(void)
 {
-    SetWindowConfig(800, 600, "My Window", WINDOW_FLAG_VISIBLE);
+    SetWindowConfig(WIDTH, HEIGHT, "My Window", WINDOW_FLAG_VISIBLE);
 
     if(!InitApplication()) return -1;
+    Shader shader;
+    if(!LoadShaderFromFile(&shader, "./res/main.vert", "./res/main.frag")) {
+        TRACELOG(LOG_FATAL, "Failed to load shader");
+        return -1;
+    }
 
-    gladLoadGL();
+    Matrix projection = MatrixOrthographic(0.0f, WIDTH, HEIGHT, 0.0f, -1.0f, 1.0f);
+    SetProjectionMatrixUniform(shader, projection.elements);
 
     while(!WindowShouldClose()) {
         PollInputEvents();
@@ -16,10 +33,57 @@ int main(void)
         if(IsKeyDown(KEY_S)) TRACELOG(LOG_INFO, "KEY_S is pressed");
         if(IsKeyDown(KEY_D)) TRACELOG(LOG_INFO, "KEY_D is pressed");
 
-        glClearColor(0.2f, 0.3f, 0.8f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        SwapGLBuffer();
+        RenderClear(0.0f, 0.0f, 0.0f, 1.0f);
+        DrawRectangle(CLITERAL(Color){255, 255, 0, 255}, 0, 0, 100, 100);
+        RenderFlush(shader);
+        SwapBufferGL();
     }
     
     DeinitApplication();
+}
+
+char *LoadFileText(const char *filePath)
+{
+    FILE *f = fopen(filePath, "r");
+    if(!f) return NULL;
+
+    fseek(f, 0L, SEEK_END);
+    size_t filesz = ftell(f);
+    fseek(f, 0L, SEEK_SET);
+    char *result = MemoryAlloc(sizeof(char) * (filesz + 1));
+    if(!result) {
+        fclose(f);
+        return NULL;
+    }
+
+    size_t read_length = fread(result, sizeof(char), filesz, f);
+    result[read_length] = '\0';
+    fclose(f);
+    return result;
+}
+
+bool LoadTextureFromFile(Texture *texture, const char *filePath, bool flipVerticallyOnLoad)
+{
+    if(!texture) return false;
+    if(!filePath) return false;
+
+    int width, height, compAmount;
+    stbi_set_flip_vertically_on_load(flipVerticallyOnLoad);
+    stbi_uc *data = stbi_load(filePath, &width, &height, &compAmount, 0);
+    if(!data) return false;
+    bool result = LoadTexture(texture, data, width, height, compAmount);
+    stbi_image_free(data);
+    stbi_set_flip_vertically_on_load(false);
+
+    return result;
+}
+
+bool LoadShaderFromFile(Shader *shader, const char *vertSourceFilePath, const char *fragSourceFilePath)
+{
+    char *vertSource = LoadFileText(vertSourceFilePath);
+    char *fragSource = LoadFileText(fragSourceFilePath);
+    bool result = LoadShader(shader, vertSource, fragSource);
+    MemoryFree(vertSource);
+    MemoryFree(fragSource);
+    return result;
 }

@@ -76,13 +76,13 @@ typedef struct _PlatformWindowState {
 #endif
 
 
-typedef struct PlatformState {
+typedef struct _PlatformState {
     bool initialized;
     _PlatformDisplayState display;
     _PlatformWindowState window;
-} PlatformState;
+} _PlatformState;
 
-static PlatformState PLATFORM = {0};
+static _PlatformState PLATFORM = {0};
 
 
 #if defined(NOE_LINUX_DISPLAY_X11)
@@ -480,7 +480,7 @@ bool platformInit(const _ApplicationConfig *config)
     return true;
 }
 
-void SwapGLBuffer(void)
+void SwapBufferGL(void)
 {
     if(PLATFORM.window.glctx.use_glx) {
         glXSwapBuffers(PLATFORM.display.handle, PLATFORM.window.glctx.glx.window);
