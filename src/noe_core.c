@@ -80,7 +80,7 @@ typedef struct _ApplicationState {
     _BatchRendererState renderer;
 } _ApplicationState;
 
-static _ApplicationConfig appConfig = (_ApplicationConfig) {
+static _ApplicationConfig appConfig = CLITERAL(_ApplicationConfig) {
     .window.width = 800,
     .window.height = 600,
     .window.title = "Noe Window",
