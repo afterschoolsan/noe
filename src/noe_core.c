@@ -173,6 +173,7 @@ void platformSetWindowVisible(bool isVisible);
 void platformSetWindowResizable(bool isResizable);
 void platformSetWindowFullscreen(bool isFullscreen);
 void SwapGLBuffer(void);
+uint64_t GetTimeMilis(void);
 
 bool InitApplication(void)
 {
@@ -752,6 +753,33 @@ void DrawTexture(Texture texture, int x, int y, uint32_t w, uint32_t h)
     int bl = RenderPutVertex((float)x, (float)y + (float)h, 0.0f,
             0.0f, 0.0f, 0.0f, 0.0f,
             0.0f, 1.0f, textureIndex);
+    RenderPutElement(tl);
+    RenderPutElement(tr);
+    RenderPutElement(br);
+    RenderPutElement(br);
+    RenderPutElement(bl);
+    RenderPutElement(tl);
+}
+
+void DrawTextureEx(Texture texture, Rectangle src, Rectangle dst)
+{
+    int textureIndex = RenderEnableTexture(texture);
+    int tl = RenderPutVertex((float)dst.x, (float)dst.y, 0.0f,  
+            0.0f, 0.0f, 0.0f, 0.0f, 
+            ((float)src.x)/texture.width, ((float)src.y)/texture.height, 
+            textureIndex);
+    int tr = RenderPutVertex((float)dst.x + (float)dst.width, (float)dst.y, 0.0f,  
+            0.0f, 0.0f, 0.0f, 0.0f,
+            ((float)src.x + (float)src.width)/texture.width, ((float)src.y)/texture.height, 
+            textureIndex);
+    int br = RenderPutVertex((float)dst.x + (float)dst.width, (float)dst.y + (float)dst.height,  
+            0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+            ((float)src.x + (float)src.width)/texture.width, ((float)src.y + (float)src.height)/texture.height, 
+            textureIndex);
+    int bl = RenderPutVertex((float)dst.x, (float)dst.y + (float)dst.height, 0.0f,
+            0.0f, 0.0f, 0.0f, 0.0f,
+            ((float)src.x)/texture.width, ((float)src.y + (float)src.height)/texture.height, 
+            textureIndex);
     RenderPutElement(tl);
     RenderPutElement(tr);
     RenderPutElement(br);

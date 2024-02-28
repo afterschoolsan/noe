@@ -24,7 +24,7 @@ int main(void)
     }
 
     Texture texture;
-    if(!LoadTextureFromFile(&texture, "./res/ikan.jpg", false)) {
+    if(!LoadTextureFromFile(&texture, "./res/ikan.png", false)) {
         TRACELOG(LOG_FATAL, "Failed to load texture");
         return -1;
     }
@@ -44,7 +44,10 @@ int main(void)
         if(IsKeyDown(KEY_D)) x += world_speed;
 
         RenderClear(0.0f, 0.0f, 0.0f, 1.0f);
-        DrawTexture(texture, x, y, 200, 200);
+        DrawTexture(texture, x, y, texture.width*10, texture.height*10);
+        // DrawTextureEx(texture, 
+        //         CLITERAL(Rectangle){ 10, 10, texture.width/2, texture.height/2 }, 
+        //         CLITERAL(Rectangle){x, y, 200, 200});
         RenderFlush(shader);
         SwapBufferGL();
     }

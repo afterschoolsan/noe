@@ -39,7 +39,11 @@
     #define CAST(T, v) ((T)(v))
 #endif
 #ifndef TRACELOG
-    #define TRACELOG(logLevel, ...) TraceLog(logLevel, __VA_ARGS__)
+    #if !defined(NDEBUG) && !defined(NOE_BUILD_RELEASE)
+        #define TRACELOG(logLevel, ...) TraceLog(logLevel, __VA_ARGS__)
+    #else
+        #define TRACELOG(logLevel, ...) 
+    #endif
 #endif
 #ifndef CLITERAL
     #ifdef __cplusplus
@@ -57,6 +61,33 @@
 /*******************************
  * Structs & Types
  *******************************/
+
+#ifndef NOMATH_TYPES
+#define NOMATH_TYPES
+
+typedef struct Vector2 {
+    float x, y;
+} Vector2;
+
+typedef struct Vector3 {
+    float x, y, z;
+} Vector3;
+
+typedef struct Vector4 {
+    float x, y, z, w;
+} Vector4;
+
+typedef union Matrix {
+    float elements[4*4];
+    Vector4 rows[4];
+} Matrix;
+
+#endif
+
+typedef struct Rectangle {
+    int x, y;
+    uint32_t width, height;
+} Rectangle;
 
 typedef struct Shader {
     uint32_t ID;
@@ -77,9 +108,7 @@ typedef struct Color {
  * Functions
  *******************************/
 
-///
 /// Non application dependent functions
-///
 
 //
 const char *StringFind(const char *haystack, const char *needle);
@@ -92,9 +121,7 @@ void MemoryFree(void *ptr);
 void TraceLog(int logLevel, const char *fmt, ...);
 
 
-///
 /// Application configuration functions 
-///
 
 //
 void SetWindowConfig(uint32_t width, uint32_t height, const char *title, uint32_t flags);
@@ -109,9 +136,9 @@ bool IsWindowVisible(void);
 bool IsWindowResizable(void);
 bool IsWindowFullscreen(void);
 
-///
+uint64_t GetTimeMilis(void); // Get time elapsed in milisecond
+
 /// Event handling
-///
 
 //
 void PollInputEvents(void);
@@ -127,25 +154,19 @@ bool IsFrameResized(void);
 void SetWindowShouldClose(bool shouldClose);
 bool WindowShouldClose(void);
 
-///
 /// OpenGL
-///
 
 //
 void SwapBufferGL(void);
 void *GetProcGL(const char *procName);
 
-///
 /// Textures
-///
 
 bool LoadTexture(Texture *result, const uint8_t *data, uint32_t width, uint32_t height, uint32_t compAmount);
 bool LoadTextureFromFile(Texture *texture, const char *filePath, bool flipVerticallyOnLoad);
 void UnloadTexture(Texture texture);
 
-///
 /// Shaders
-///
 
 bool LoadShader(Shader *result, const char *vertSource, const char *fragSource);
 bool LoadShaderFromFile(Shader *result, const char *vertSourceFilePath, const char *fragSourceFilePath);
@@ -165,9 +186,13 @@ void RenderClear(float r, float g, float b, float a);
 void RenderFlush(Shader shader);
 int RenderPutVertex(float x, float y, float z, float r, float g, float b, float a, float u, float v, int textureIndex);
 void RenderPutElement(int vertexIndex);
-void DrawTriangle(Color color, int x1, int y1, int x2, int y2, int x3, int y3);
+
 void DrawRectangle(Color color, int x, int y, uint32_t w, uint32_t h);
 void DrawTexture(Texture texture, int x, int y, uint32_t w, uint32_t h);
+void DrawTextureEx(Texture texture, Rectangle src, Rectangle dst);
+
+void DrawTriangle(Color color, int x1, int y1, int x2, int y2, int x3, int y3);
+void DrawCircle(Color color, int cx, int cy, uint32_t r);
 
 /*******************************
  * Enumerations

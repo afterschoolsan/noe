@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <sys/time.h>
 
 #ifdef NOE_LINUX_DISPLAY_X11
 #include <X11/Xlib.h>
@@ -806,4 +807,9 @@ void *MemoryAlloc(size_t nBytes)
 void MemoryFree(void *ptr)
 {
     if(ptr) free(ptr);
+}
+
+uint64_t GetTimeMilis(void)
+{
+    return 0;
 }

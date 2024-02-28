@@ -9,24 +9,31 @@
     #endif
 #endif
 
-typedef struct Vec2 {
-} Vec2;
+#ifndef NOMATH_TYPES
+#define NOMATH_TYPES
+typedef struct Vector2 {
+    float x, y;
+} Vector2;
 
-typedef struct Vec3 {
+typedef struct Vector3 {
+    float x, y, z;
+} Vector3;
 
-} Vec3;
+typedef struct Vector4 {
+    float x, y, z, w;
+} Vector4;
 
-typedef struct Vec4 {
-
-} Vec4;
-
-typedef struct Matrix {
+typedef union Matrix {
     float elements[4*4];
+    Vector4 rows[4];
 } Matrix;
+#endif // NOMATH_TYPES
 
 Matrix MatrixNew(float eye);
 Matrix MatrixOrthographic(float left, float right, float bottom, float top, float far, float near);
 Matrix MatrixPerspective(float fovRadians, float aspectRatio, float near, float far);
+Matrix MatrixLookAt(void);
+Matrix MatrixTranslate(void);
 
 #endif // NOMATH_H_
 
