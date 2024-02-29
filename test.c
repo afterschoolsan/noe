@@ -14,8 +14,7 @@ bool LoadShaderFromFile(Shader *shader, const char *vertSourceFilePath, const ch
 
 int main(void)
 {
-    SetWindowConfig(WIDTH, HEIGHT, "My Window", WINDOW_FLAG_VISIBLE);
-
+    SetupWindow("My Window", WIDTH, HEIGHT, WINDOW_SETUP_DEFAULT);
     if(!InitApplication()) return -1;
     Shader shader;
     if(!LoadShaderFromFile(&shader, "./res/main.vert", "./res/main.frag")) {
@@ -24,7 +23,7 @@ int main(void)
     }
 
     Texture texture;
-    if(!LoadTextureFromFile(&texture, "./res/ikan.jpg", false)) {
+    if(!LoadTextureFromFile(&texture, "./res/ikan.png", false)) {
         TRACELOG(LOG_FATAL, "Failed to load texture");
         return -1;
     }
@@ -43,8 +42,8 @@ int main(void)
         if(IsKeyDown(KEY_S)) y += world_speed;
         if(IsKeyDown(KEY_D)) x += world_speed;
 
-        RenderClear(0.0f, 0.0f, 0.0f, 1.0f);
-        DrawTexture(texture, x, y, 200, 200);
+        ClearBackground(WHITE);
+        DrawTexture(texture, x, y, texture.width*10, texture.height*10);
         RenderFlush(shader);
         SwapBufferGL();
     }

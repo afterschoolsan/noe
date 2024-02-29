@@ -35,11 +35,28 @@
     #define MAXIMUM_KEYPRESSED_QUEUE 16
 #endif
 
+#ifndef SIGN
+    #define SIGN(T, a) (((T)(a) > 0) - ((T)(a) < 0))
+#endif 
+
+#ifndef ABS
+    #define ABS(T, a) (SIGN(T, a) * a)
+#endif
+
 #ifndef CAST
     #define CAST(T, v) ((T)(v))
+#endif 
+
+#ifndef BIT
+    #define BIT(pos) (1 << (pos))
 #endif
+
 #ifndef TRACELOG
-    #define TRACELOG(logLevel, ...) TraceLog(logLevel, __VA_ARGS__)
+    #if !defined(NDEBUG) && !defined(NOE_BUILD_RELEASE)
+        #define TRACELOG(logLevel, ...) TraceLog(logLevel, __VA_ARGS__)
+    #else
+        #define TRACELOG(logLevel, ...) 
+    #endif
 #endif
 #ifndef CLITERAL
     #ifdef __cplusplus
@@ -58,6 +75,64 @@
  * Structs & Types
  *******************************/
 
+#ifndef NOMATH_TYPES
+#define NOMATH_TYPES
+typedef union Vector2 {
+    float elements[2];
+    struct {
+        union {
+            float x, r, s;
+        };
+        union {
+            float y, g, t;
+        };
+    };
+} Vector2;
+
+typedef union Vector3 {
+    float elements[3];
+    struct {
+        union {
+            float x, r, s;
+        };
+        union {
+            float y, g, t;
+        };
+        union {
+            float z, b, p;
+        };
+    };
+} Vector3;
+
+typedef union Vector4 {
+    float elements[4];
+    struct {
+        union {
+            float x, r, s;
+        };
+        union {
+            float y, g, t;
+        };
+        union {
+            float z, b, p;
+        };
+        union {
+            float w, a, q;
+        };
+    };
+} Vector4;
+
+typedef union Matrix {
+    float elements[4*4];
+    Vector4 rows[4];
+} Matrix;
+#endif // NOMATH_TYPES
+
+typedef struct Rectangle {
+    int x, y;
+    uint32_t width, height;
+} Rectangle;
+
 typedef struct Shader {
     uint32_t ID;
     int *locs;
@@ -73,13 +148,17 @@ typedef struct Color {
     uint8_t r, g, b, a;
 } Color;
 
+#define WHITE CLITERAL(Color){ .r = 0xFF, .g=0xFF, .b=0xFF, .a=0xFF }
+#define BLACK CLITERAL(Color){ .r = 0x00, .g=0x00, .b=0x00, .a=0xFF }
+#define RED   CLITERAL(Color){ .r = 0xFF, .g=0x00, .b=0x00, .a=0xFF }
+#define GREEN CLITERAL(Color){ .r = 0x00, .g=0xFF, .b=0x00, .a=0xFF }
+#define BLUE  CLITERAL(Color){ .r = 0x00, .g=0x00, .b=0xFF, .a=0xFF }
+
 /*******************************
  * Functions
  *******************************/
 
-///
 /// Non application dependent functions
-///
 
 //
 const char *StringFind(const char *haystack, const char *needle);
@@ -92,12 +171,11 @@ void MemoryFree(void *ptr);
 void TraceLog(int logLevel, const char *fmt, ...);
 
 
-///
 /// Application configuration functions 
-///
 
 //
-void SetWindowConfig(uint32_t width, uint32_t height, const char *title, uint32_t flags);
+void SetupWindow(const char *title, uint32_t width, uint32_t height, uint32_t flags);
+void SetupOpenGL(uint32_t versionMajor, uint32_t versionMinor, uint32_t flags);
 bool InitApplication(void);
 void DeinitApplication(void);
 void SetWindowTitle(const char *title);
@@ -109,9 +187,9 @@ bool IsWindowVisible(void);
 bool IsWindowResizable(void);
 bool IsWindowFullscreen(void);
 
-///
+uint64_t GetTimeMilis(void); // Get time elapsed in milisecond
+
 /// Event handling
-///
 
 //
 void PollInputEvents(void);
@@ -127,25 +205,13 @@ bool IsFrameResized(void);
 void SetWindowShouldClose(bool shouldClose);
 bool WindowShouldClose(void);
 
-///
-/// OpenGL
-///
-
-//
-void SwapBufferGL(void);
-void *GetProcGL(const char *procName);
-
-///
 /// Textures
-///
 
 bool LoadTexture(Texture *result, const uint8_t *data, uint32_t width, uint32_t height, uint32_t compAmount);
 bool LoadTextureFromFile(Texture *texture, const char *filePath, bool flipVerticallyOnLoad);
 void UnloadTexture(Texture texture);
 
-///
 /// Shaders
-///
 
 bool LoadShader(Shader *result, const char *vertSource, const char *fragSource);
 bool LoadShaderFromFile(Shader *result, const char *vertSourceFilePath, const char *fragSourceFilePath);
@@ -158,16 +224,34 @@ int GetShaderUniformLocation(Shader shader, const char *uniformName);
 int GetShaderAttributeLocation(Shader shader, const char *attributeName);
 
 ///
-/// OpenGL Batch Renderer
+/// Batch Renderer
 ///
 
 void RenderClear(float r, float g, float b, float a);
 void RenderFlush(Shader shader);
 int RenderPutVertex(float x, float y, float z, float r, float g, float b, float a, float u, float v, int textureIndex);
 void RenderPutElement(int vertexIndex);
-void DrawTriangle(Color color, int x1, int y1, int x2, int y2, int x3, int y3);
+int RenderEnableTexture(Texture texture);
+void RenderViewport(int x, int y, uint32_t width, uint32_t height);
+
+/// Drawing
+
+void ClearBackground(Color color);
+void BeginDrawing(void);
+void EndDrawing(void);
 void DrawRectangle(Color color, int x, int y, uint32_t w, uint32_t h);
 void DrawTexture(Texture texture, int x, int y, uint32_t w, uint32_t h);
+void DrawTextureEx(Texture texture, Rectangle src, Rectangle dst);
+void DrawTriangle(Color color, int x1, int y1, int x2, int y2, int x3, int y3);
+void DrawCircle(Color color, int cx, int cy, uint32_t r);
+
+
+/// OpenGL
+
+//
+void SwapBufferGL(void);
+void *GetProcGL(const char *procName);
+
 
 /*******************************
  * Enumerations
@@ -179,13 +263,22 @@ typedef enum NoeLogLevel {
     LOG_FATAL,
 } NoeLogLevel;
 
-typedef enum NoeWindowFlags {
-    WINDOW_FLAG_DEFAULT = 0,
-    WINDOW_FLAG_VISIBLE = 1,
-    WINDOW_FLAG_RESIZABLE = 2,
-    WINDOW_FLAG_FULLSCREEN = 3,
-    WINDOW_FLAG_DECORATED = 4,
-} NoeWindowFlags;
+typedef enum NoeWindowSetupFlags {
+    WINDOW_SETUP_DEFAULT = 0,
+    WINDOW_SETUP_VISIBLE = BIT(1),
+    WINDOW_SETUP_RESIZABLE = BIT(2),
+    WINDOW_SETUP_FULLSCREEN = BIT(3),
+    WINDOW_SETUP_DECORATED = BIT(4),
+} NoeWindowSetupFlags;
+
+typedef enum NoeOpenGLSetupFlags {
+    OPENGL_SETUP_DEFAULT = 0,
+    OPENGL_SETUP_NATIVE_CONTEXT = BIT(1),
+    OPENGL_SETUP_CORE_PROFILE = BIT(2),
+    OPENGL_SETUP_OPENGLES = BIT(3),
+    OPENGL_SETUP_DEBUG_CONTEXT = BIT(4),
+    OPENGL_SETUP_FORWARD = BIT(5),
+} NoeOpenGLSetupFlags;
 
 typedef enum NoeShaderUniformType {
     INVALID_SHADER_UNIFORM = 0,
@@ -344,7 +437,6 @@ typedef struct _ApplicationConfig {
     struct {
         const char *title;
         uint32_t width, height;
-
         bool visible;
         bool resizable;
         bool fullScreen;
@@ -353,10 +445,10 @@ typedef struct _ApplicationConfig {
     struct {
         // The context creation will use GLX on Linux X11 Display System or WGL on Windows 
         // otherwise It will use EGL
-        bool use_native;
-        bool use_core_profile;
-        bool use_opengles;
-        bool use_debug_context;
+        bool useNative;
+        bool useCoreProfile;
+        bool useOpenglES;
+        bool useDebugContext;
         bool forward;
         struct {
             int major;
@@ -379,6 +471,15 @@ typedef struct _InputManager {
     struct {
         char currentButtonState[MAXIMUM_MOUSE_BUTTONS];
         char previousButtonState[MAXIMUM_MOUSE_BUTTONS];
+
+        Vector2 previousPosition;
+        Vector2 currentPosition;
+
+        Vector2 currentWheelMove;
+        Vector2 previousWheelMove;
+
+        Vector2 offset;
+        Vector2 scale;
     } mouse;
 } _InputManager;
 
