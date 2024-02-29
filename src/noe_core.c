@@ -5,23 +5,54 @@
 #define NOMATH_IMPLEMENTATION
 #include "nomath.h"
 
-#define POSITION_SHADER_ATTRIBUTE_LOCATION 0
-#define COLOR_SHADER_ATTRIBUTE_LOCATION 1
-#define TEXCOORDS_SHADER_ATTRIBUTE_LOCATION 2
-#define TEXTURE_INDEX_SHADER_ATTRIBUTE_LOCATION 3
-#define TEXTURE_SAMPLERS_SHADER_UNIFORM_LOCATION 4
-#define PROJECTION_MATRIX_SHADER_UNIFORM_LOCATION 5
-#define VIEW_MATRIX_SHADER_UNIFORM_LOCATION 6
-#define MODEL_MATRIX_SHADER_UNIFORM_LOCATION 7
-
-#define POSITION_SHADER_ATTRIBUTE_NAME "a_Position"
-#define COLOR_SHADER_ATTRIBUTE_NAME "a_Color"
-#define TEXCOORDS_SHADER_ATTRIBUTE_NAME "a_TexCoords"
-#define TEXTURE_INDEX_SHADER_ATTRIBUTE_NAME "a_TextureIndex"
-#define TEXTURE_SAMPLERS_SHADER_UNIFORM_NAME "u_Textures"
-#define PROJECTION_MATRIX_SHADER_UNIFORM_NAME "u_Projection"
-#define VIEW_MATRIX_SHADER_UNIFORM_NAME "u_View"
-#define MODEL_MATRIX_SHADER_UNIFORM_NAME "u_Model"
+#ifndef POSITION_SHADER_ATTRIBUTE_LOCATION
+    #define POSITION_SHADER_ATTRIBUTE_LOCATION 0
+#endif // POSITION_SHADER_ATTRIBUTE_LOCATION
+#ifndef COLOR_SHADER_ATTRIBUTE_LOCATION
+    #define COLOR_SHADER_ATTRIBUTE_LOCATION 1
+#endif // COLOR_SHADER_ATTRIBUTE_LOCATION
+#ifndef TEXCOORDS_SHADER_ATTRIBUTE_LOCATION
+    #define TEXCOORDS_SHADER_ATTRIBUTE_LOCATION 2
+#endif // TEXCOORDS_SHADER_ATTRIBUTE_LOCATION
+#ifndef TEXTURE_INDEX_SHADER_ATTRIBUTE_LOCATION
+    #define TEXTURE_INDEX_SHADER_ATTRIBUTE_LOCATION 3
+#endif // TEXTURE_INDEX_SHADER_ATTRIBUTE_LOCATION
+#ifndef TEXTURE_SAMPLERS_SHADER_UNIFORM_LOCATION
+    #define TEXTURE_SAMPLERS_SHADER_UNIFORM_LOCATION 4
+#endif // TEXTURE_SAMPLERS_SHADER_UNIFORM_LOCATION
+#ifndef PROJECTION_MATRIX_SHADER_UNIFORM_LOCATION
+    #define PROJECTION_MATRIX_SHADER_UNIFORM_LOCATION 5
+#endif // PROJECTION_MATRIX_SHADER_UNIFORM_LOCATION
+#ifndef VIEW_MATRIX_SHADER_UNIFORM_LOCATION
+    #define VIEW_MATRIX_SHADER_UNIFORM_LOCATION 6
+#endif // VIEW_MATRIX_SHADER_UNIFORM_LOCATION
+#ifndef MODEL_MATRIX_SHADER_UNIFORM_LOCATION
+    #define MODEL_MATRIX_SHADER_UNIFORM_LOCATION 7
+#endif // MODEL_MATRIX_SHADER_UNIFORM_LOCATION
+#ifndef POSITION_SHADER_ATTRIBUTE_NAME
+    #define POSITION_SHADER_ATTRIBUTE_NAME "a_Position"
+#endif // POSITION_SHADER_ATTRIBUTE_NAME
+#ifndef COLOR_SHADER_ATTRIBUTE_NAME
+    #define COLOR_SHADER_ATTRIBUTE_NAME "a_Color"
+#endif // COLOR_SHADER_ATTRIBUTE_NAME
+#ifndef TEXCOORDS_SHADER_ATTRIBUTE_NAME
+    #define TEXCOORDS_SHADER_ATTRIBUTE_NAME "a_TexCoords"
+#endif // TEXCOORDS_SHADER_ATTRIBUTE_NAME
+#ifndef TEXTURE_INDEX_SHADER_ATTRIBUTE_NAME
+    #define TEXTURE_INDEX_SHADER_ATTRIBUTE_NAME "a_TextureIndex"
+#endif // TEXTURE_INDEX_SHADER_ATTRIBUTE_NAME
+#ifndef TEXTURE_SAMPLERS_SHADER_UNIFORM_NAME
+    #define TEXTURE_SAMPLERS_SHADER_UNIFORM_NAME "u_Textures"
+#endif // TEXTURE_SAMPLERS_SHADER_UNIFORM_NAME
+#ifndef PROJECTION_MATRIX_SHADER_UNIFORM_NAME
+    #define PROJECTION_MATRIX_SHADER_UNIFORM_NAME "u_Projection"
+#endif // PROJECTION_MATRIX_SHADER_UNIFORM_NAME
+#ifndef VIEW_MATRIX_SHADER_UNIFORM_NAME
+    #define VIEW_MATRIX_SHADER_UNIFORM_NAME "u_View"
+#endif // VIEW_MATRIX_SHADER_UNIFORM_NAME
+#ifndef MODEL_MATRIX_SHADER_UNIFORM_NAME
+    #define MODEL_MATRIX_SHADER_UNIFORM_NAME "u_Model"
+#endif // MODEL_MATRIX_SHADER_UNIFORM_NAME
 
 #ifndef MAXIMUM_SHADER_LOCS
     #define MAXIMUM_SHADER_LOCS 16
@@ -91,10 +122,10 @@ static _ApplicationConfig appConfig = CLITERAL(_ApplicationConfig) {
 
     .opengl.version.major = 3,
     .opengl.version.minor = 3,
-    .opengl.use_core_profile = true,
-    .opengl.use_debug_context = false,
-    .opengl.use_opengles = false,
-    .opengl.use_native = true,
+    .opengl.useCoreProfile = true,
+    .opengl.useDebugContext = false,
+    .opengl.useOpenglES = false,
+    .opengl.useNative = true,
 };
 
 static _ApplicationState APP = {0};
@@ -175,23 +206,11 @@ void platformSetWindowFullscreen(bool isFullscreen);
 void SwapGLBuffer(void);
 uint64_t GetTimeMilis(void);
 
-bool InitApplication(void)
+bool initBatchRenderer(void)
 {
-    if(APP.initialized) return false;
-
-    APP.window.title = appConfig.window.title;
-    APP.window.width = appConfig.window.width;
-    APP.window.height = appConfig.window.height;
-    APP.window.visible = appConfig.window.visible;
-    APP.window.resizable = appConfig.window.resizable;
-    APP.window.fullScreen = appConfig.window.fullScreen;
-    APP.window.shouldClose = false;
-    APP.window.defaultExitButton = KEY_ESCAPE;
-    if(!platformInit(&appConfig)) return false;
-
     gladLoadGL();
 
-    APP.renderer.config.supportVAO = appConfig.opengl.use_core_profile;
+    APP.renderer.config.supportVAO = appConfig.opengl.useCoreProfile;
     APP.renderer.vertices.count = 0;
     APP.renderer.elements.count = 0;
     APP.renderer.activeTextureIDs.count = 0;
@@ -216,6 +235,31 @@ bool InitApplication(void)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, APP.renderer.eboID);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(APP.renderer.elements.data), NULL, GL_DYNAMIC_DRAW);
 
+    return true;
+}
+
+void deinitBatchRenderer(void)
+{
+    if(APP.renderer.config.supportVAO) glDeleteVertexArrays(1, &APP.renderer.vaoID);
+    glDeleteBuffers(1, &APP.renderer.eboID);
+    glDeleteBuffers(1, &APP.renderer.vboID);
+}
+
+bool InitApplication(void)
+{
+    if(APP.initialized) return false;
+
+    APP.window.title = appConfig.window.title;
+    APP.window.width = appConfig.window.width;
+    APP.window.height = appConfig.window.height;
+    APP.window.visible = appConfig.window.visible;
+    APP.window.resizable = appConfig.window.resizable;
+    APP.window.fullScreen = appConfig.window.fullScreen;
+    APP.window.shouldClose = false;
+    APP.window.defaultExitButton = KEY_ESCAPE;
+    if(!platformInit(&appConfig)) return false;
+    if(!initBatchRenderer()) return false;
+
     APP.initialized = true;
     return true;
 }
@@ -223,11 +267,7 @@ bool InitApplication(void)
 void DeinitApplication(void)
 {
     if(!APP.initialized) return;
-
-    if(APP.renderer.config.supportVAO) glDeleteVertexArrays(1, &APP.renderer.vaoID);
-    glDeleteBuffers(1, &APP.renderer.eboID);
-    glDeleteBuffers(1, &APP.renderer.vboID);
-
+    deinitBatchRenderer();
     platformDeinit();
 }
 
@@ -244,47 +284,52 @@ void SetWindowTitle(const char *title)
 
 void SetWindowSize(uint32_t width, uint32_t height)
 {
+#ifndef NOE_PLATFORM_DESKTOP
+    TRACELOG(LOG_ERROR, "`SetWindowVisible()` only works on Desktop Platform");
+#else
     NOE_REQUIRE_INIT_OR_RETURN_VOID("`SetWindowSize()` requires you to call `InitApplication()`");
     APP.window.width = width;
     APP.window.height = height;
+#endif
 }
 
 void SetWindowVisible(bool isVisible)
 {
+#ifndef NOE_PLATFORM_DESKTOP
+    TRACELOG(LOG_ERROR, "`SetWindowVisible()` only works on Desktop Platform");
+#else
     NOE_REQUIRE_INIT_OR_RETURN_VOID("`SetWindowVisible()` requires you to call `InitApplication()`");
-#ifdef NOE_PLATFORM_DESKTOP
     APP.window.visible = isVisible;
     platformSetWindowVisible(isVisible);
-#else
-    TRACELOG(LOG_ERROR, "`SetWindowVisible()` only works on Desktop Platform");
 #endif
 }
 
 void SetWindowResizable(bool isResizable)
 {
+#ifndef NOE_PLATFORM_DESKTOP
+    TRACELOG(LOG_ERROR, "`SetWindowResizable()` only works on Desktop Platform");
+#else
     NOE_REQUIRE_INIT_OR_RETURN_VOID("`SetWindowResizable()` requires you to call `InitApplication()`");
-#ifdef NOE_PLATFORM_DESKTOP
     APP.window.resizable = isResizable;
     platformSetWindowResizable(isResizable);
-#else
-    TRACELOG(LOG_ERROR, "`SetWindowResizable()` only works on Desktop Platform");
 #endif
 }
 
 void SetWindowFullscreen(bool isFullscreen)
 {
-#ifdef NOE_PLATFORM_DESKTOP
+#ifndef NOE_PLATFORM_DESKTOP
+    TRACELOG(LOG_ERROR, "`SetWindowFullscreen()` only works on Desktop Platform");
+#else
     NOE_REQUIRE_INIT_OR_RETURN_VOID("`SetWindowFullscreen()` requires you to call `InitApplication()`");
     APP.window.fullScreen = isFullscreen;
-#else
-    TRACELOG(LOG_ERROR, "`SetWindowFullscreen()` only works on Desktop Platform");
 #endif
 }
 
 bool IsWindowVisible(void)
 {
 #ifndef NOE_PLATFORM_DESKTOP
-    TRACELOG(LOG_WARNING, "`IsWindowVisible()` is only available on Desktop platform")
+    TRACELOG(LOG_WARNING, "`IsWindowVisible()` is only available on Desktop platform");
+    return false;
 #endif
     return APP.window.visible;
 }
@@ -292,13 +337,18 @@ bool IsWindowVisible(void)
 bool IsWindowResizable(void)
 {
 #ifndef NOE_PLATFORM_DESKTOP
-    TRACELOG(LOG_WARNING, "`IsWindowResizable()` is only available on Desktop platform")
+    TRACELOG(LOG_WARNING, "`IsWindowResizable()` is only available on Desktop platform");
+    return false;
 #endif
     return APP.window.resizable;
 }
 
 bool IsWindowFullscreen(void)
 {
+#ifndef NOE_PLATFORM_DESKTOP
+    TRACELOG(LOG_WARNING, "`IsWindowFullscreen()` is only available on Desktop platform");
+    return false;
+#endif
     return APP.window.fullScreen;
 }
 
@@ -380,18 +430,23 @@ bool IsKeyUp(int key)
     return up;
 }
 
-void SetWindowConfig(uint32_t width, uint32_t height, const char *title, uint32_t flags)
+void SetupOpenGL(uint32_t versionMajor, uint32_t versionMinor, uint32_t flags)
+{
+    appConfig.opengl.version.major = versionMajor;
+    appConfig.opengl.version.major = versionMinor;
+    (void)flags;
+}
+
+void SetupWindow(const char *title, uint32_t width, uint32_t height, uint32_t flags)
 {
     appConfig.window.title = title;
     appConfig.window.width = width;
     appConfig.window.height = height;
-    if(flags == 0) {
-        flags = WINDOW_FLAG_VISIBLE | WINDOW_FLAG_DECORATED;
-    }
-    appConfig.window.resizable = FLAG_CHECK(WINDOW_FLAG_RESIZABLE, flags) ? 1 : 0;
-    appConfig.window.fullScreen = FLAG_CHECK(WINDOW_FLAG_FULLSCREEN, flags) ? 1 : 0;
-    appConfig.window.visible = FLAG_CHECK(WINDOW_FLAG_VISIBLE, flags) ? 1 : 0;
-    appConfig.window.decorated = FLAG_CHECK(WINDOW_FLAG_DECORATED, flags) ? 1 : 0;
+    if(flags == 0) flags = WINDOW_SETUP_VISIBLE | WINDOW_SETUP_DECORATED;
+    appConfig.window.resizable = FLAG_CHECK(WINDOW_SETUP_RESIZABLE, flags) ? 1 : 0;
+    appConfig.window.fullScreen = FLAG_CHECK(WINDOW_SETUP_FULLSCREEN, flags) ? 1 : 0;
+    appConfig.window.visible = FLAG_CHECK(WINDOW_SETUP_VISIBLE, flags) ? 1 : 0;
+    appConfig.window.decorated = FLAG_CHECK(WINDOW_SETUP_DECORATED, flags) ? 1 : 0;
 }
 
 void RenderClear(float r, float g, float b, float a)
@@ -466,9 +521,9 @@ void RenderFlush(Shader shader)
     APP.renderer.activeTextureIDs.count = 0;
 }
 
-void RenderViewport(uint32_t width, uint32_t height)
+void RenderViewport(int x, int y, uint32_t width, uint32_t height)
 {
-    glViewport(0, 0, width, height);
+    glViewport(x, y, width, height);
 }
 
 int RenderEnableTexture(Texture texture)
@@ -713,77 +768,4 @@ void SetShaderUniform(Shader shader, int location, int uniformType, const void *
             break;
     }
     glUseProgram(0);
-}
-
-#define COLOR_UNPACK(c) ((float)(c).r/255.0f),((float)(c).g/255.0f),((float)(c).b/255.0f),((float)(c).a/255.0f)
-
-void DrawTriangle(Color color, int x1, int y1, int x2, int y2, int x3, int y3)
-{
-    RenderPutElement(RenderPutVertex((float)x1, (float)y1, 0.0f, COLOR_UNPACK(color), 0.0f, 0.0f, -1.0f));
-    RenderPutElement(RenderPutVertex((float)x2, (float)y2, 0.0f, COLOR_UNPACK(color), 0.0f, 0.0f, -1.0f));
-    RenderPutElement(RenderPutVertex((float)x3, (float)y3, 0.0f, COLOR_UNPACK(color), 0.0f, 0.0f, -1.0f));
-}
-
-void DrawRectangle(Color color, int x, int y, uint32_t w, uint32_t h)
-{
-    int v0 = RenderPutVertex((float)x,  (float)y, 0.0f, COLOR_UNPACK(color), 0.0f, 0.0f, -1.0f);
-    int v1 = RenderPutVertex((float)x + (float)w,  (float)y, 0.0f, COLOR_UNPACK(color), 0.0f, 0.0f, -1.0f);
-    int v2 = RenderPutVertex((float)x + (float)w,  (float)y + (float)h, 0.0f, COLOR_UNPACK(color), 0.0f, 0.0f, -1.0f);
-    int v3 = RenderPutVertex((float)x,  (float)y + (float)h, 0.0f, COLOR_UNPACK(color), 0.0f, 0.0f, -1.0f);
-    RenderPutElement(v0);
-    RenderPutElement(v1);
-    RenderPutElement(v2);
-    RenderPutElement(v2);
-    RenderPutElement(v3);
-    RenderPutElement(v0);
-}
-
-void DrawTexture(Texture texture, int x, int y, uint32_t w, uint32_t h)
-{
-    int textureIndex = RenderEnableTexture(texture);
-    int tl = RenderPutVertex((float)x, (float)y, 0.0f,  
-            0.0f, 0.0f, 0.0f, 0.0f, 
-            0.0f, 0.0f, textureIndex);
-    int tr = RenderPutVertex((float)x + (float)w, (float)y, 0.0f,  
-            0.0f, 0.0f, 0.0f, 0.0f,
-            1.0f, 0.0f, textureIndex);
-    int br = RenderPutVertex((float)x + (float)w, (float)y + (float)h,  
-            0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-            1.0f, 1.0f, textureIndex);
-    int bl = RenderPutVertex((float)x, (float)y + (float)h, 0.0f,
-            0.0f, 0.0f, 0.0f, 0.0f,
-            0.0f, 1.0f, textureIndex);
-    RenderPutElement(tl);
-    RenderPutElement(tr);
-    RenderPutElement(br);
-    RenderPutElement(br);
-    RenderPutElement(bl);
-    RenderPutElement(tl);
-}
-
-void DrawTextureEx(Texture texture, Rectangle src, Rectangle dst)
-{
-    int textureIndex = RenderEnableTexture(texture);
-    int tl = RenderPutVertex((float)dst.x, (float)dst.y, 0.0f,  
-            0.0f, 0.0f, 0.0f, 0.0f, 
-            ((float)src.x)/texture.width, ((float)src.y)/texture.height, 
-            textureIndex);
-    int tr = RenderPutVertex((float)dst.x + (float)dst.width, (float)dst.y, 0.0f,  
-            0.0f, 0.0f, 0.0f, 0.0f,
-            ((float)src.x + (float)src.width)/texture.width, ((float)src.y)/texture.height, 
-            textureIndex);
-    int br = RenderPutVertex((float)dst.x + (float)dst.width, (float)dst.y + (float)dst.height,  
-            0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-            ((float)src.x + (float)src.width)/texture.width, ((float)src.y + (float)src.height)/texture.height, 
-            textureIndex);
-    int bl = RenderPutVertex((float)dst.x, (float)dst.y + (float)dst.height, 0.0f,
-            0.0f, 0.0f, 0.0f, 0.0f,
-            ((float)src.x)/texture.width, ((float)src.y + (float)src.height)/texture.height, 
-            textureIndex);
-    RenderPutElement(tl);
-    RenderPutElement(tr);
-    RenderPutElement(br);
-    RenderPutElement(br);
-    RenderPutElement(bl);
-    RenderPutElement(tl);
 }

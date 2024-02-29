@@ -55,7 +55,7 @@ typedef struct _PlatformDisplayState {
 } _PlatformDisplayState;
 
 typedef struct _PlatformGLContext {
-    bool use_glx;
+    bool useGLX;
     struct {
         GLXContext handle;
         GLXWindow window;
@@ -295,7 +295,7 @@ bool initGLContextGLX(const _ApplicationConfig *config)
     GLXContext share = NULL;
     GLXContext result_context = NULL;
 
-    if(config->opengl.use_opengles) {
+    if(config->opengl.useOpenglES) {
         if (!PLATFORM.display.glx.extensions.ARB_create_context ||
                 !PLATFORM.display.glx.extensions.ARB_create_context_profile ||
                 !PLATFORM.display.glx.extensions.EXT_create_context_es2_profile) {
@@ -325,14 +325,14 @@ bool initGLContextGLX(const _ApplicationConfig *config)
         } while(0)
 
         int index = 0, mask = 0, flags = 0;
-        if(config->opengl.use_opengles) {
+        if(config->opengl.useOpenglES) {
             mask |= GLX_CONTEXT_ES2_PROFILE_BIT_EXT;
         } else {
-            if (config->opengl.use_core_profile) mask |= GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
+            if (config->opengl.useCoreProfile) mask |= GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
             else mask |= GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
         }
 
-        if (config->opengl.use_debug_context) flags |= GLX_CONTEXT_DEBUG_BIT_ARB;
+        if (config->opengl.useDebugContext) flags |= GLX_CONTEXT_DEBUG_BIT_ARB;
         if (config->opengl.version.major != 1 || config->opengl.version.minor != 0)
         {
             SET_ATTRIB(GLX_CONTEXT_MAJOR_VERSION_ARB, config->opengl.version.major);
@@ -407,7 +407,7 @@ bool platformInit(const _ApplicationConfig *config)
     PLATFORM.display.handle = dpy;
     setupX11KeyMaps();
 
-    if(config->opengl.use_native) {
+    if(config->opengl.useNative) {
         if(!initGLX()) {
             XCloseDisplay(PLATFORM.display.handle);
             TRACELOG(LOG_INFO, "Failed to initialize GLX");
@@ -452,7 +452,7 @@ bool platformInit(const _ApplicationConfig *config)
     PLATFORM.window.wmDeleteWindow = wmDeleteWindow;
     PLATFORM.window.width = config->window.width;
     PLATFORM.window.height = config->window.height;
-    PLATFORM.window.glctx.use_glx = config->opengl.use_native;
+    PLATFORM.window.glctx.useGLX = config->opengl.useNative;
 
     platformSetWindowResizable(config->window.resizable);
     platformSetWindowVisible(config->window.visible);
@@ -465,7 +465,7 @@ bool platformInit(const _ApplicationConfig *config)
 
     TRACELOG(LOG_INFO, "Initializing display system success (X11)");
 
-    if(config->opengl.use_native) {
+    if(config->opengl.useNative) {
         if(!initGLContextGLX(config)) {
             XCloseDisplay(PLATFORM.display.handle);
             TRACELOG(LOG_INFO, "Failed to initialize GLX");
@@ -483,7 +483,7 @@ bool platformInit(const _ApplicationConfig *config)
 
 void SwapBufferGL(void)
 {
-    if(PLATFORM.window.glctx.use_glx) {
+    if(PLATFORM.window.glctx.useGLX) {
         glXSwapBuffers(PLATFORM.display.handle, PLATFORM.window.glctx.glx.window);
     }
 }
@@ -492,7 +492,7 @@ void platformDeinit(void)
 {
     if(!PLATFORM.initialized) return;
 
-    if(PLATFORM.window.glctx.use_glx) {
+    if(PLATFORM.window.glctx.useGLX) {
         glXDestroyWindow(PLATFORM.display.handle, PLATFORM.window.glctx.glx.window);
         glXDestroyContext(PLATFORM.display.handle, PLATFORM.window.glctx.glx.handle);
     } else {

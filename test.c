@@ -14,8 +14,7 @@ bool LoadShaderFromFile(Shader *shader, const char *vertSourceFilePath, const ch
 
 int main(void)
 {
-    SetWindowConfig(WIDTH, HEIGHT, "My Window", WINDOW_FLAG_VISIBLE);
-
+    SetupWindow("My Window", WIDTH, HEIGHT, WINDOW_SETUP_DEFAULT);
     if(!InitApplication()) return -1;
     Shader shader;
     if(!LoadShaderFromFile(&shader, "./res/main.vert", "./res/main.frag")) {
@@ -43,11 +42,8 @@ int main(void)
         if(IsKeyDown(KEY_S)) y += world_speed;
         if(IsKeyDown(KEY_D)) x += world_speed;
 
-        RenderClear(0.0f, 0.0f, 0.0f, 1.0f);
+        ClearBackground(WHITE);
         DrawTexture(texture, x, y, texture.width*10, texture.height*10);
-        // DrawTextureEx(texture, 
-        //         CLITERAL(Rectangle){ 10, 10, texture.width/2, texture.height/2 }, 
-        //         CLITERAL(Rectangle){x, y, 200, 200});
         RenderFlush(shader);
         SwapBufferGL();
     }
